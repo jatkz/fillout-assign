@@ -37,6 +37,7 @@ const start = async () => {
   try {
     await server.listen({
       port: PORT,
+      host: "0.0.0.0",
       listenTextResolver(address) {
         return `Server is listening at ${address}`;
       },
