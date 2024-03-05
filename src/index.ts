@@ -33,7 +33,8 @@ app.get(
       }
 
       const json = await response.json();
-      const filteredJson = filterResponse.filter(json, JSON.parse(filters));
+      const parsedFilters = filters ? JSON.parse(filters) : [];
+      const filteredJson = filterResponse.filter(json, parsedFilters);
       res.json(filteredJson);
     } catch (error: any) {
       res.status(500).send(error.message);
