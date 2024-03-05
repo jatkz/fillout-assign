@@ -56,7 +56,6 @@ export class FilterResponse {
           new Date(value2).getTime()
         );
       }
-      console.log(value1, value2, this.conditions[operation](value1, value2));
       return this.conditions[operation](value1, value2);
     }
     throw new Error("Invalid operation");

@@ -1,52 +1,46 @@
-import fastify, { FastifyRequest } from "fastify";
-import {
-  AuthorizationHeader,
-  FilterResponseParams,
-  FilterResponseQueryParams,
-} from "./filterResponseTypes";
-import ky from "ky";
+import express from "express";
+import fetch from "node-fetch";
 import { FilterResponse } from "./filterResponse";
+import { URLSearchParams } from "url";
 
-const server = fastify({ logger: true });
+const app = express();
 const PORT = Number(process.env.PORT) || 3000;
-
 const filterResponse = new FilterResponse();
 
-server.get<{
-  Params: FilterResponseParams;
-  Querystring: FilterResponseQueryParams;
-  Headers: AuthorizationHeader;
-}>("/:formId/filteredResponses", async (request, reply) => {
-  const { formId } = request.params;
-  const { filters, ...baseQueryParams } = request.query;
+// Middleware to parse JSON body in POST requests
+app.use(express.json());
 
-  const json = await ky
-    .get(`https://api.fillout.com/v1/api/forms/${formId}/submissions`, {
-      headers: {
-        Authorization: request.headers.authorization,
-      },
-      searchParams: baseQueryParams,
-    })
-    .json();
+app.get(
+  "/:formId/filteredResponses",
+  async (req: express.Request, res: express.Response) => {
+    const { formId } = req.params;
+    const { filters, ...baseQueryParams } = req.query as any;
+    const headers = {
+      Authorization: req.headers.authorization || "",
+    };
 
-  const filteredJson = filterResponse.filter(json, JSON.parse(filters));
-  return filteredJson;
-});
+    try {
+      const searchParams = new URLSearchParams(baseQueryParams).toString();
+      const response = await fetch(
+        `https://api.fillout.com/v1/api/forms/${formId}/submissions?${searchParams}`,
+        {
+          headers,
+        }
+      );
 
-const start = async () => {
-  try {
-    await server.listen({
-      port: PORT,
-      host: "0.0.0.0",
-      listenTextResolver(address) {
-        return `Server is listening at ${address}`;
-      },
-    });
-    // console.log(`Server is listening on ${server.addresses()[0].port}`);
-  } catch (err) {
-    server.log.error(err);
-    process.exit(1);
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const json = await response.json();
+      const filteredJson = filterResponse.filter(json, JSON.parse(filters));
+      res.json(filteredJson);
+    } catch (error: any) {
+      res.status(500).send(error.message);
+    }
   }
-};
+);
 
-start();
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is listening on port ${PORT}`);
+});
