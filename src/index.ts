@@ -8,6 +8,7 @@ import ky from "ky";
 import { FilterResponse } from "./filterResponse";
 
 const server = fastify({ logger: true });
+const PORT = Number(process.env.PORT) || 3000;
 
 const filterResponse = new FilterResponse();
 
@@ -35,7 +36,7 @@ server.get<{
 const start = async () => {
   try {
     await server.listen({
-      port: 3000,
+      port: PORT,
       listenTextResolver(address) {
         return `Server is listening at ${address}`;
       },
